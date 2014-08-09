@@ -7,9 +7,32 @@ Terp.prototype = {
             return this._eval_literal(expr);
         } else if (this._is_builtin(expr)){
             return this._builtins[expr];
+        } else if (this._is_compound(expr)){
+            var fun = this.eval(this.first(expr))
+            console.log(expr);
+            console.log("function is");
+            console.log(fun);
+            return this.apply(fun, this.rest(expr));
         } else {
-            return "Invalid expression.";
+            throw new Error("Invalid Expression.");
         }
+    },
+    _is_compound: function(expr, env){
+        return expr[0] === '('
+    },
+    strip_parens: function(expr){
+        return expr.replace(RegExp('^\\('), '').replace(RegExp('\\)$'),'').replace(RegExp('\ *$'),'').replace(RegExp('^\ *'),'');
+    },
+    first: function(expr){
+        return this.strip_parens(expr).split(' ')[0];
+    },
+    rest: function(expr){
+        return this.strip_parens(expr).split(' ').slice(1);
+    },
+    apply: function(fun, args, env){
+        return fun.apply(undefined, args.map(function (elem){
+            return this.eval(elem, env)
+        }));
     },
     _builtins: {
         '+': function (operand1, operand2) {return operand1 + operand2},
@@ -18,16 +41,18 @@ Terp.prototype = {
         '/': function (operand1, operand2) {return operand1 / operand2},
         '%': function (operand1, operand2) {return operand1 % operand2},
     },
+    _literals: {
+    },
     _is_builtin: function(expr, env) {
         return (expr in this._builtins)
     },
     _is_literal: function(expr, env) {
         //is expr a number?
         //Only handle numbers as litersl for now.
-        return !Number.isNaN((new Number(expr)).valueOf())
+        return expr in this._literals || !Number.isNaN((new Number(expr)).valueOf())
     },
     _eval_literal: function(expr, env) {
-        return (new Number(expr)).valueOf();
+        return this._literals[expr] || (new Number(expr)).valueOf();
     },
     /*
     _is_definition: function(expr, env) {
