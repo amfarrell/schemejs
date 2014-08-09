@@ -8,11 +8,14 @@ Terp.prototype = {
         } else if (this._is_builtin(expr)){
             return this._builtins[expr];
         } else if (this._is_compound(expr)){
-            var fun = this.eval(this.first(expr))
-            console.log(expr);
-            console.log("function is");
-            console.log(fun);
-            return this.apply(fun, this.rest(expr));
+            return this.apply(
+                    //evaluate the function to be applied
+                    this.eval(this.first(expr)),
+                    // evaluate the arguments
+                    this.rest(expr).map(function (elem){
+                        return this.eval(elem, env)
+                    })
+                );
         } else {
             throw new Error("Invalid Expression.");
         }
@@ -29,10 +32,8 @@ Terp.prototype = {
     rest: function(expr){
         return this.strip_parens(expr).split(' ').slice(1);
     },
-    apply: function(fun, args, env){
-        return fun.apply(undefined, args.map(function (elem){
-            return this.eval(elem, env)
-        }));
+    apply: function(fun, args){
+        return fun.apply(undefined, args);
     },
     _builtins: {
         '+': function (operand1, operand2) {return operand1 + operand2},
