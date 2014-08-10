@@ -96,6 +96,19 @@ describe("lambda levaluation", function(){
         expect(this.terp.leval('(((lambda (x) (lambda (y) (+ x y))) 3) 4)', global)).toBe(7);
     });
 });
+describe("assigment levaluation", function(){
+    beforeEach(function(){
+        this.terp = new interpreter.Interpreter();
+    });
+    it("Should assign and lookup in global scope correctly", function(){
+        expect(this.terp._leval_let("(let ((x 3) (y 5)) (+ 2 2))", this.terp._builtins)).toBe(4);
+        expect(this.terp._leval_let("(let ((x 3) (y 5)) (+ x y))", this.terp._builtins)).toBe(8);
+    });
+    it("Should assign in scope looked up by lambda correctly", function(){
+        expect(this.terp.leval("((let ((x 3)) (lambda (y) (+ x y))) 17)")).toBe(20);
+    });
+});
+
 describe("environment operations", function(){
     it("Global environment assignment and lookup should work", function (){
         var global = new interpreter.GlobeEnv();

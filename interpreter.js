@@ -151,6 +151,8 @@ Terp.prototype = {
         } else if (this._is_compound(expr)){
             if (this._is_lambda(expr)){
                 return this._leval_lambda(expr, env);
+            } else if (this._is_let(expr)){
+                return this._leval_let(expr, env);
             } else {
                 var that = this
                 return this.apply(
@@ -249,21 +251,31 @@ Terp.prototype = {
     },
     _leval_lambda: function(expr, env){
         return new Lambda(this._lambda_params(expr), this._lambda_body(expr), env)
-    }
-    /*
+    },
+    _is_let: function(expr, env) {
+        return this._is_compound(expr) && this.first(expr) === 'let';
+    },
+    _let_new_env: function(assignments, env){
+        var new_env = env.extend();
+        for (pair in assignments){
+            new_env.assign(assignments[pair][0],
+                    this.leval(assignments[pair][1], env)
+            );
+        }
+        return new_env
+    },
+    _leval_let: function(expr, env) {
+        // Evaluate the caddr in the new env created from the key-value pairs in the cadr.
+        return this.leval(this.first(this.rest(this.rest(expr))),
+                this._let_new_env(this.first(this.rest(expr)), env)
+                )
+    },
     _is_definition: function(expr, env) {
-        return this._first(expr) === 'def';
+        return this._is_compound(expr) && this.first(expr) === 'def';
     },
     _leval_definition: function(expr, env) {
 
     },
-    _is_variable: function(expr, env) {
-
-    },
-    _leval_variable: function(expr, env) {
-
-    },
-    */
 }
 exports.Interpreter = Terp;
 exports.ExpTree = ExpTree;
