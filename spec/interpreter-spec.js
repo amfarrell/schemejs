@@ -1,5 +1,30 @@
-
+var tokenizer = require("sexp-tokenizer");
 var interpreter = require("../interpreter");
+
+describe("parsing", function(){
+    beforeEach(function() {
+        this.parse =  function(expr){return (new interpreter.ExpTree(expr)).as_array()}
+    });
+    it("Should not handle literals", function(){
+        that = this
+        expect(function(){that.parse("3")}).toThrow();
+        expect(function(){that.parse("3 2")}).toThrow();
+    });
+    it("Should not handle strings where the parenthates don't match", function(){
+        that = this
+        expect(function(){that.parse("(3")}).toThrow();
+        expect(function(){that.parse(") 2")}).toThrow();
+        expect(function(){that.parse("() 2")}).toThrow();
+        expect(function(){that.parse("()) 2")}).toThrow();
+    });
+    it("Should handle strings where the parenthises do match", function(){
+        expect(this.parse("(3)")).toEqual(["3"]);
+        expect(this.parse("(2 3)")).toEqual(["2", "3"]);
+        expect(this.parse("(add 2 3)")).toEqual(["add", "2", "3"]);
+        expect(this.parse("(add 2 (minus 5 3))")).toEqual(["add", "2", ["minus", "5", "3"]]);
+        expect(this.parse("(add 2 (minus 5 (3)) (+ 4 5))")).toEqual(["add", "2", ["minus", "5", ["3"]], ["+", "4", "5"]]);
+    });
+});
 
 describe("evaluation", function() {
     beforeEach(function(){
@@ -49,6 +74,7 @@ describe("evaluation", function() {
         expect(this.terp._is_compound('(3)')).toBe(true);
     });
     it("Should split expressions into lists properly", function (){
+        expect(this.terp.rest("(undefined (5 6) 3 )")).toEqual([['5', '6'], '3']);
         expect(this.terp.first("(+ 2 3)")).toBe('+');
         expect(this.terp.first("(4 2 3)")).toBe('4');
         expect(this.terp.first("(undefined 2 3)")).toBe("undefined");
@@ -67,6 +93,20 @@ describe("evaluation", function() {
     it("Should handle expressions of builtin arithmetic", function(){
         var result = (this.terp).eval("( + 2 3)");
         expect(result).toBe(5);
+    });
+    it("Should recognise lambda expressions", function (){
+        expect(this.terp._is_lambda('4')).toBe(false);
+        expect(this.terp._is_lambda('5.6e2')).toBe(false);
+        expect(this.terp._is_lambda('%')).toBe(false);
+        expect(this.terp._is_lambda('/ 4')).toBe(false);
+        expect(this.terp._is_lambda('(+ 3 5)')).toBe(false);
+        expect(this.terp._is_lambda('(3)')).toBe(false);
+        expect(this.terp._is_lambda('(lambda (x) (+ x 3))')).toBe(true);
+        expect(this.terp._is_lambda('(lambda (x b) (- b (+ x 3)))')).toBe(true);
+    });
+    it("Should extract lambda parameters", function (){
+        expect(this.terp._lambda_params('(lambda (x) (+ x 3))')).toEqual(['x']);
+        expect(this.terp._lambda_params('(lambda (x b) (- b (+ x 3)))')).toEqual(['x', 'b']);
     });
     it("Should error on any other expression", function (){
         var that = this
