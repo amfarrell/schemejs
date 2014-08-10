@@ -45,6 +45,56 @@ describe("lambda levaluation", function(){
         expect(this.terp._lambda_params('(lambda (x) (+ x 3))')).toEqual(['x']);
         expect(this.terp._lambda_params('(lambda (x b) (- b (+ x 3)))')).toEqual(['x', 'b']);
     });
+    it("Should extract lambda body", function (){
+        expect(this.terp._lambda_body('(lambda (x) (+ x 3))')).toEqual(['+', 'x', '3']);
+        expect(this.terp._lambda_body('(lambda (x b) (- b (+ x 3)))')).toEqual(['-', 'b', ['+', 'x', '3']]);
+    });
+    it("Should create lambda correctly", function(){
+        var global = this.terp._builtins;
+        var fun = this.terp._leval_lambda('(lambda (x) (+ x 3))', global)
+        expect(fun.body).toEqual(['+', 'x', '3']);
+        expect(fun.params).toEqual(['x']);
+        expect(fun.env).not.toBe(global);
+        expect(fun.env._predecessor).toBe(global);
+    });
+    it("Should fill in params correctly", function(){
+        var global = this.terp._builtins;
+        var fun = this.terp._leval_lambda('(lambda (x) (+ x 3))', global)
+        fun.fill_environment(["3"]);
+        expect(fun.env.lookup('sentenel')).toBe("sentenel")
+        expect(fun.env.lookup('x')).toBe("3")
+
+    });
+    it("Should be looked up correctly", function(){
+        var global = this.terp._builtins;
+        var fun = this.terp._leval_lambda('(lambda (x) (+ x 3))', global)
+        this.terp._builtins.assign('addthree', fun);
+        expect(fun.env.lookup('addthree').params).toEqual(["x"])
+    });
+    it("Should evaluate its body correctly", function(){
+        var global = this.terp._builtins;
+        var fun = this.terp._leval_lambda('(lambda (x) (+ x 3))', global)
+        fun.fill_environment([3]);
+        expect(this.terp.leval(['+', '3', '3'], fun.env)).toBe(6);
+        expect(this.terp.leval(fun.body, fun.env)).toBe(6);
+    });
+    it("Should be called correctly", function(){
+        var global = this.terp._builtins;
+        var fun = this.terp._leval_lambda('(lambda (x) (+ x 3))', global)
+        this.terp._builtins.assign('addthree', fun);
+        expect(this.terp.leval(['addthree', '3'])).toBe(6);
+        expect(this.terp.leval('(addthree 3)')).toBe(6);
+    });
+    it("Should return a new function from a function correctly", function(){
+        var global = this.terp._builtins;
+        var fun = this.terp._leval_lambda('(lambda (x) (lambda (y) (+ x y)))', global)
+        this.terp._builtins.assign('makeadder', fun);
+        expect(this.terp.leval(['makeadder', '3']) instanceof interpreter.Lambda).toBe(true);
+        var fun2 = this.terp.leval(['makeadder', '3'])
+        expect(this.terp.leval(['+', 'x', '10'], fun.env)).toBe(13);
+
+        expect(this.terp.leval('(((lambda (x) (lambda (y) (+ x y))) 3) 4)', global)).toBe(7);
+    });
 });
 describe("environment operations", function(){
     it("Global environment assignment and lookup should work", function (){

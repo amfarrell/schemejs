@@ -65,6 +65,7 @@ ExpTree.prototype = {
         }
     }
 }
+
 function Environment(predecessor){
     this._predecessor = predecessor;
     this._variables = {};
@@ -109,8 +110,26 @@ GlobalEnvironment.prototype = Environment.prototype = {
     },
 }
 
+function Lambda(params, body, env){
+    this.params = params;
+    this.body = body;
+    this.env = env.extend();
+}
+Lambda.prototype = {
+    fill_environment: function(args){
+        //Assign the arguments to the parameters.
+        var arg_i = 0;
+        while (this.params[arg_i] !== undefined){
+            this.env.assign(this.params[arg_i], args[arg_i]);
+            arg_i ++;
+        }
+        //now we need to evaluate the body in the new environment.
+    }
+}
+
 function Terp () {
     this._builtins = new GlobalEnvironment({
+        'sentenel': 'sentenel',
         '+': function (operand1, operand2) {return operand1 + operand2},
         '-': function (operand1, operand2) {return operand1 - operand2},
         '*': function (operand1, operand2) {return operand1 * operand2},
@@ -123,10 +142,6 @@ function Terp () {
     });
 };
 Terp.prototype = {
-    tokenize: function(expr) {
-        var OPEN  = {}
-            CLOSE = {}
-    },
     leval: function(expr, env) {
         env = env || this._builtins;
         if (this._is_literal(expr)) {
@@ -135,7 +150,7 @@ Terp.prototype = {
             return this._leval_variable(expr, env);
         } else if (this._is_compound(expr)){
             if (this._is_lambda(expr)){
-                return this._make_proc(this._lambda_params(expr), this._lambda_body(expr), env);
+                return this._leval_lambda(expr, env);
             } else {
                 var that = this
                 return this.apply(
@@ -145,6 +160,7 @@ Terp.prototype = {
                     this.rest(expr).map(function (elem){
                         return that.leval(elem, env)
                     })
+
                 );
             }
         } else {
@@ -152,13 +168,19 @@ Terp.prototype = {
         }
     },
     apply: function(fun, args){
-        return fun.apply(undefined, args);
+        if (fun instanceof Function){
+            return fun.apply(undefined, args);
+        } else if (fun instanceof Lambda){
+            fun.fill_environment(args);
+            return this.leval(fun.body, fun.env);
+        } else {
+            throw new Error("Unknown Function type "+fun);
+        }
     },
     _is_builtin: function(expr) {
         return (expr in this._builtins)
     },
     _is_variable: function(expr){
-        debugger;
         return !this._is_literal(expr) && (typeof expr == "string" || expr instanceof String) && expr[0] !== '('
     },
     _leval_variable: function(expr, env){
@@ -223,8 +245,11 @@ Terp.prototype = {
         return this.first(this.rest(expr));
     },
     _lambda_body: function(expr){
-        return this.rest(this.rest(expr));
+        return this.first(this.rest(this.rest(expr)));
     },
+    _leval_lambda: function(expr, env){
+        return new Lambda(this._lambda_params(expr), this._lambda_body(expr), env)
+    }
     /*
     _is_definition: function(expr, env) {
         return this._first(expr) === 'def';
@@ -244,3 +269,4 @@ exports.Interpreter = Terp;
 exports.ExpTree = ExpTree;
 exports.Env = Environment;
 exports.GlobeEnv = GlobalEnvironment;
+exports.Lambda = Lambda;
