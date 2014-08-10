@@ -76,22 +76,24 @@ Terp.prototype = {
 
 
     },
-    eval: function(expr, env) {
+    leval: function(expr, env) {
         if (this._is_literal(expr)) {
-            return this._eval_literal(expr);
+            return this._leval_literal(expr);
         } else if (this._is_builtin(expr)){
             return this._builtins[expr];
         } else if (this._is_compound(expr)){
             if (this._is_lambda(expr)){
                 return this._make_proc(this._lambda_params(expr), this._lambda_body(expr), env);
             } else {
+                var that = this
                 return this.apply(
-                        //evaluate the function to be applied
-                        this.eval(this.first(expr)),
-                        // evaluate the arguments
+                        //levaluate the function to be applied
+                        this.leval(this.first(expr)),
+                        // levaluate the arguments
                         this.rest(expr).map(function (elem){
-                            return this.eval(elem, env)
+                            return that.leval(elem, env)
                         })
+
                     );
             }
         } else {
@@ -108,7 +110,7 @@ Terp.prototype = {
         return this.rest(this.rest(expr));
     },
     _is_compound: function(expr, env){
-        return expr[0] === '('
+        return (expr instanceof Array) || expr[0] === '('
     },
     tokenize_list: function(expr){
         return (new ExpTree(expr)).as_array();
@@ -127,6 +129,13 @@ Terp.prototype = {
             return this.tokenize_list(expr).slice(1);
         }
     },
+    len: function(expr){
+        if (expr instanceof Array){
+            return expr.length;
+        } else {
+            return this.len(this.tokenize_list(expr));
+        }
+    },
     apply: function(fun, args){
         return fun.apply(undefined, args);
     },
@@ -136,31 +145,50 @@ Terp.prototype = {
         '*': function (operand1, operand2) {return operand1 * operand2},
         '/': function (operand1, operand2) {return operand1 / operand2},
         '%': function (operand1, operand2) {return operand1 % operand2},
+        'not': function (operand1) {return ! operand1},
+        'and': function (operand1, operand2) {return operand1 && operand2},
+        'or': function (operand1, operand2) {return operand1 || operand2},
+        'eq': function (operand1, operand2) {return operand1 === operand2},
     },
     _literals: {
+        'true': true,
+        'false': false,
     },
-    _is_builtin: function(expr, env) {
+    _is_builtin: function(expr) {
         return (expr in this._builtins)
     },
-    _is_literal: function _is_literal(expr, env) {
+    _is_literal: function (expr) {
         //is expr a number?
         //Only handle numbers as litersl for now.
         return expr in this._literals || !Number.isNaN((new Number(expr)).valueOf())
     },
-    _eval_literal: function _eval_literal(expr, env) {
+    _leval_literal: function (expr) {
+        if (expr==="false"){
+            return false; //special cased because (false || foo) equals foo.
+        }
         return this._literals[expr] || (new Number(expr)).valueOf();
+    },
+    _is_if: function (expr){
+        return this.first(expr) === 'if' && this.len(expr) == 4; //Don't allow ifs without alternates.
+    },
+    _leval_if: function (expr, env){
+        if (this.leval(this.first(this.rest(expr)), env)){ //implicitly uses js's own model for truthyness
+            return this.leval(this.first(this.rest(this.rest(expr))), env) //caddr
+        } else {
+            return this.leval(this.first(this.rest(this.rest(this.rest(expr)))), env) //cadddr
+        }
     },
     /*
     _is_definition: function(expr, env) {
         return this._first(expr) === 'def';
     },
-    _eval_definition: function(expr, env) {
+    _leval_definition: function(expr, env) {
         
     },
     _is_variable: function(expr, env) {
 
     },
-    _eval_variable: function(expr, env) {
+    _leval_variable: function(expr, env) {
 
     },
     */
