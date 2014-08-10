@@ -46,7 +46,63 @@ xdescribe("lambda levaluation", function(){
         expect(this.terp._lambda_params('(lambda (x b) (- b (+ x 3)))')).toEqual(['x', 'b']);
     });
 });
-describe("conditional and boolean levaluation", function(){
+describe("environment operations", function(){
+    it("Global environment assignment and lookup should work", function (){
+        var global = new interpreter.GlobeEnv();
+        global.assign("a", 4);
+        expect(global.lookup("a")).toBe(4);
+        global.assign("b", [3, 4]);
+        expect(global.lookup("b")).toEqual([3, 4]);
+    });
+    it("Global environment chained assignment and lookup should work", function (){
+        var global = new interpreter.GlobeEnv();
+        global.assign("a", 4).assign("b", [3, 4]);
+        expect(global._variables["a"]).toBe(4);
+        expect(global.lookup("a")).toBe(4);
+        expect(global.lookup("b")).toEqual([3, 4]);
+    });
+    it("Global environment should be able to spawn local environment", function (){
+        var global = new interpreter.GlobeEnv();
+        global.assign("a", 4).assign("b", [3, 4]);
+        var local = global.extend();
+        expect(local._predecessor).toBe(global);
+        expect(local.lookup("a")).toBe(4);
+    });
+    it("assigning immutables in local environment should not affect global environment", function (){
+        var global = new interpreter.GlobeEnv();
+        global.assign("a", 4).assign("b", [3, 4]);
+        var local = global.extend();
+        local.assign("a", 6);
+    });
+    it("Modifying mutables from local environment should affect global environment; assigning them should not", function (){
+        var global = new interpreter.GlobeEnv();
+        var local = global.extend();
+        global.assign("a", 4).assign("b", [3, 4]);
+        expect(local.lookup("b")).toEqual([3,4]);
+        local.lookup("b")[0] = 2;
+        expect(local.lookup("b")).toEqual([2,4]);
+        expect(global.lookup("b")).toEqual([2,4]);
+        local.assign("b", [7,8]);
+        expect(local.lookup("b")).toEqual([7,8]);
+        expect(global.lookup("b")).toEqual([2,4]);
+    });
+    it("Lookups should work across multiple local environments", function (){
+        var global = new interpreter.GlobeEnv();
+        var local1 = global.extend();
+        var local2 = local1.extend();
+        var local3 = local2.extend();
+        local1.assign("b", [7,8]);
+        expect(local3.lookup("b")).toEqual([7,8]);
+        expect(function(){global.lookup("b")}).toThrow();
+        var local1_2 = global.extend();
+        expect(function(){local1_2.lookup("b")}).toThrow();
+        local1_2.assign("b", 4);
+        expect(local3.lookup("b")).toEqual([7,8]);
+        expect(local1_2.lookup("b")).toEqual(4);
+    });
+});
+
+xdescribe("conditional and boolean levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });

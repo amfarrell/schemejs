@@ -65,6 +65,46 @@ ExpTree.prototype = {
         }
     }
 }
+function Environment(predecessor){
+    this._predecessor = predecessor;
+    this._variables = {};
+}
+function GlobalEnvironment(){
+    this._predecessor = undefined;
+    this._variables = {};
+}
+GlobalEnvironment.prototype = Environment.prototype = {
+    assign: function(key, value, global){
+        var env;
+        if (global && (env = this._find_env_with_variable(key))) {
+            env[key] = value;
+        } else {
+            this._variables[key] = value;
+        }
+        var that = this
+        return {assign: function(key, value, global){that.assign(key, value, global)}}
+    },
+    _find_env_with_variable: function(key){
+        if (this._variables.hasOwnProperty(key)){ //don't return undefined
+            return this;
+        } else if (this._predecessor){
+            return this._predecessor._find_env_with_variable(key)
+        } else {
+            return undefined
+        }
+    },
+    extend: function(){
+        return new Environment(this);
+    },
+    lookup: function(key){
+        var env
+        if (env = this._find_env_with_variable(key)){
+            return env._variables[key];
+        } else {
+            throw Error("Global " + key + " not defined");
+        }
+    },
+}
 
 function Terp () {
 
@@ -87,14 +127,13 @@ Terp.prototype = {
             } else {
                 var that = this
                 return this.apply(
-                        //levaluate the function to be applied
-                        this.leval(this.first(expr)),
-                        // levaluate the arguments
-                        this.rest(expr).map(function (elem){
-                            return that.leval(elem, env)
-                        })
-
-                    );
+                    //levaluate the function to be applied
+                    this.leval(this.first(expr)),
+                    // levaluate the arguments
+                    this.rest(expr).map(function (elem){
+                        return that.leval(elem, env)
+                    })
+                );
             }
         } else {
             throw new Error("Invalid Expression.");
@@ -183,7 +222,7 @@ Terp.prototype = {
         return this._first(expr) === 'def';
     },
     _leval_definition: function(expr, env) {
-        
+
     },
     _is_variable: function(expr, env) {
 
@@ -195,3 +234,5 @@ Terp.prototype = {
 }
 exports.Interpreter = Terp;
 exports.ExpTree = ExpTree;
+exports.Env = Environment;
+exports.GlobeEnv = GlobalEnvironment;
