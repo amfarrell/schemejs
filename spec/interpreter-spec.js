@@ -1,7 +1,7 @@
 var tokenizer = require("sexp-tokenizer");
 var interpreter = require("../interpreter");
 
-xdescribe("parsing", function(){
+describe("parsing", function(){
     beforeEach(function() {
         this.parse =  function(expr){return (new interpreter.ExpTree(expr)).as_array()}
     });
@@ -27,7 +27,7 @@ xdescribe("parsing", function(){
     });
 });
 
-xdescribe("lambda levaluation", function(){
+describe("lambda levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -102,7 +102,7 @@ describe("environment operations", function(){
     });
 });
 
-xdescribe("conditional and boolean levaluation", function(){
+describe("conditional and boolean levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -138,7 +138,7 @@ xdescribe("conditional and boolean levaluation", function(){
 });
 
 
-xdescribe("simple arithmetic levaluation", function() {
+describe("simple arithmetic levaluation", function() {
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -159,15 +159,15 @@ xdescribe("simple arithmetic levaluation", function() {
         expect(this.terp.leval('6')).toBe(6);
     });
     it("Should recognise builtin functions", function(){
-        expect(this.terp._is_builtin('+')).toBe(true);
-        expect(this.terp._is_builtin('-')).toBe(true);
-        expect(this.terp._is_builtin('*')).toBe(true);
-        expect(this.terp._is_builtin('/')).toBe(true);
-        expect(this.terp._is_builtin('%')).toBe(true);
-        expect(this.terp._is_builtin('5')).toBe(false);
-        expect(this.terp._is_builtin('(+ 3 5)')).toBe(false);
+        expect(this.terp._is_variable('+')).toBe(true);
+        expect(this.terp._is_variable('-')).toBe(true);
+        expect(this.terp._is_variable('*')).toBe(true);
+        expect(this.terp._is_variable('/')).toBe(true);
+        expect(this.terp._is_variable('%')).toBe(true);
+        expect(this.terp._is_variable('5')).toBe(false);
+        expect(this.terp._is_variable('(+ 3 5)')).toBe(false);
     });
-    it("Should recognise builtin functions", function(){
+    it("Should recognise literals", function(){
         expect(this.terp._is_literal('4')).toBe(true);
         expect(this.terp._is_literal('3.0')).toBe(true);
         expect(this.terp._is_literal('5.6e2')).toBe(true);
@@ -190,11 +190,11 @@ xdescribe("simple arithmetic levaluation", function() {
     });
     it("Should error on any other expression", function (){
         var that = this
-        expect(function (){that.terp.leval("(def a 3)")}).toThrow("Invalid Expression.");
+        expect(function (){that.terp.leval("(def a 3)")}).toThrow();
     });
 });
 
-xdescribe("simple list levaluation", function(){
+describe("simple list levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });

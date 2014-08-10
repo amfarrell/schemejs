@@ -69,9 +69,12 @@ function Environment(predecessor){
     this._predecessor = predecessor;
     this._variables = {};
 }
-function GlobalEnvironment(){
+function GlobalEnvironment(assignments){
     this._predecessor = undefined;
     this._variables = {};
+    for (var key in assignments){
+        this._variables[key] = assignments[key];
+    }
 }
 GlobalEnvironment.prototype = Environment.prototype = {
     assign: function(key, value, global){
@@ -107,20 +110,29 @@ GlobalEnvironment.prototype = Environment.prototype = {
 }
 
 function Terp () {
-
+    this._builtins = new GlobalEnvironment({
+        '+': function (operand1, operand2) {return operand1 + operand2},
+        '-': function (operand1, operand2) {return operand1 - operand2},
+        '*': function (operand1, operand2) {return operand1 * operand2},
+        '/': function (operand1, operand2) {return operand1 / operand2},
+        '%': function (operand1, operand2) {return operand1 % operand2},
+        'not': function (operand1) {return ! operand1},
+        'and': function (operand1, operand2) {return operand1 && operand2},
+        'or': function (operand1, operand2) {return operand1 || operand2},
+        'eq': function (operand1, operand2) {return operand1 === operand2},
+    });
 };
 Terp.prototype = {
     tokenize: function(expr) {
         var OPEN  = {}
             CLOSE = {}
-
-
     },
     leval: function(expr, env) {
+        env = env || this._builtins;
         if (this._is_literal(expr)) {
             return this._leval_literal(expr);
-        } else if (this._is_builtin(expr)){
-            return this._builtins[expr];
+        } else if (this._is_variable(expr)){
+            return this._leval_variable(expr, env);
         } else if (this._is_compound(expr)){
             if (this._is_lambda(expr)){
                 return this._make_proc(this._lambda_params(expr), this._lambda_body(expr), env);
@@ -139,14 +151,33 @@ Terp.prototype = {
             throw new Error("Invalid Expression.");
         }
     },
-    _is_lambda: function(expr, env){
-        return this._is_compound(expr) && this.first(expr) === 'lambda';
+    apply: function(fun, args){
+        return fun.apply(undefined, args);
     },
-    _lambda_params: function(expr){
-        return this.first(this.rest(expr));
+    _is_builtin: function(expr) {
+        return (expr in this._builtins)
     },
-    _lambda_body: function(expr){
-        return this.rest(this.rest(expr));
+    _is_variable: function(expr){
+        debugger;
+        return !this._is_literal(expr) && (typeof expr == "string" || expr instanceof String) && expr[0] !== '('
+    },
+    _leval_variable: function(expr, env){
+        return env.lookup(expr);
+    },
+    _literals: {
+        'true': true,
+        'false': false,
+    },
+    _is_literal: function (expr) {
+        //is expr a number?
+        //Only handle numbers as litersl for now.
+        return expr in this._literals || !Number.isNaN((new Number(expr)).valueOf())
+    },
+    _leval_literal: function (expr) {
+        if (expr==="false"){
+            return false; //special cased because (false || foo) equals foo.
+        }
+        return this._literals[expr] || (new Number(expr)).valueOf();
     },
     _is_compound: function(expr, env){
         return (expr instanceof Array) || expr[0] === '('
@@ -175,38 +206,6 @@ Terp.prototype = {
             return this.len(this.tokenize_list(expr));
         }
     },
-    apply: function(fun, args){
-        return fun.apply(undefined, args);
-    },
-    _builtins: {
-        '+': function (operand1, operand2) {return operand1 + operand2},
-        '-': function (operand1, operand2) {return operand1 - operand2},
-        '*': function (operand1, operand2) {return operand1 * operand2},
-        '/': function (operand1, operand2) {return operand1 / operand2},
-        '%': function (operand1, operand2) {return operand1 % operand2},
-        'not': function (operand1) {return ! operand1},
-        'and': function (operand1, operand2) {return operand1 && operand2},
-        'or': function (operand1, operand2) {return operand1 || operand2},
-        'eq': function (operand1, operand2) {return operand1 === operand2},
-    },
-    _literals: {
-        'true': true,
-        'false': false,
-    },
-    _is_builtin: function(expr) {
-        return (expr in this._builtins)
-    },
-    _is_literal: function (expr) {
-        //is expr a number?
-        //Only handle numbers as litersl for now.
-        return expr in this._literals || !Number.isNaN((new Number(expr)).valueOf())
-    },
-    _leval_literal: function (expr) {
-        if (expr==="false"){
-            return false; //special cased because (false || foo) equals foo.
-        }
-        return this._literals[expr] || (new Number(expr)).valueOf();
-    },
     _is_if: function (expr){
         return this.first(expr) === 'if' && this.len(expr) == 4; //Don't allow ifs without alternates.
     },
@@ -216,6 +215,15 @@ Terp.prototype = {
         } else {
             return this.leval(this.first(this.rest(this.rest(this.rest(expr)))), env) //cadddr
         }
+    },
+    _is_lambda: function(expr, env){
+        return this._is_compound(expr) && this.first(expr) === 'lambda';
+    },
+    _lambda_params: function(expr){
+        return this.first(this.rest(expr));
+    },
+    _lambda_body: function(expr){
+        return this.rest(this.rest(expr));
     },
     /*
     _is_definition: function(expr, env) {
