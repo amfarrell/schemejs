@@ -292,13 +292,16 @@ Terp.prototype = {
                 );
     },
 }
-exports.Interpreter = Terp;
-exports.ExpTree = ExpTree;
-exports.Env = Environment;
-exports.GlobeEnv = GlobalEnvironment;
-exports.Lambda = Lambda;
+var attachexports = function(exports){
+    exports.Interpreter = Terp;
+    exports.ExpTree = ExpTree;
+    exports.Env = Environment;
+    exports.GlobeEnv = GlobalEnvironment;
+    exports.Lambda = Lambda;
+};
+attachexports(typeof exports === 'undefined' ? this['interpreter'] = {}: exports);
 
-if (!module.parent){
+if (typeof module !== 'undefined' && !module.parent){
     (function shell(){
         var terp = new Terp();
         process.stdout.write("scheme> ");
