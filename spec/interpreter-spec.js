@@ -1,7 +1,7 @@
 var tokenizer = require("sexp-tokenizer");
 var interpreter = require("../interpreter");
 
-describe("parsing", function(){
+xdescribe("parsing", function(){
     beforeEach(function() {
         this.parse =  function(expr){return (new interpreter.ExpTree(expr)).as_array()}
     });
@@ -26,8 +26,55 @@ describe("parsing", function(){
         expect(this.parse("(add 2 (minus 5 (3)) (+ 4 5))")).toEqual(["add", "2", ["minus", "5", ["3"]], ["+", "4", "5"]]);
     });
 });
+xdescribe("printing", function(){
+    beforeEach(function(){
+        this.terp = new interpreter.Interpreter();
+    });
+    it("not interfere with return value", function(){
+        expect(this.terp.leval("(print (+ 3 4))")).toEqual(7)
+        expect(this.terp.leval("(print (- 3 4))")).toEqual(-1)
+        expect(this.terp.leval("(let ((a 3)(b 5)) (+ a b))")).toEqual(8)
+        expect(this.terp.leval("(let ((a 3)(b 5)) (print (a b) (+ a b)))")).toEqual(8)
+    });
+});
+describe("recursive definitions of lambdas", function(){
+    beforeEach(function(){
+        this.terp = new interpreter.Interpreter();
+    });
+    it("Should work fine defining fibonacci", function(){
+        expect(this.terp.leval("(let ((fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))) )) (fib 1))")).toBe(1)
+        expect(this.terp.leval("(let ((fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))) )) (fib 2))")).toBe(1)
+        expect(this.terp.leval("(let ((fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))) )) (fib 3))")).toBe(2)
+        expect(this.terp.leval("(let ((fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))) )) (fib 4))")).toBe(3)
+        expect(this.terp.leval("(let ((fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))) )) (fib 5))")).toBe(5)
+        expect(this.terp.leval("(let ((fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))) )) (fib 6))")).toBe(8)
+    });
+    it("Should be able to use a recursive function we've manually put into the environment", function(){
+        expect(this.terp.leval("(print 1)")).toBe(1)
+        var evaluated_fact = this.terp._leval_lambda("(lambda (n) \
+                                                                (if (<= n 1)\
+                                                                     1 \
+                                                                    (* (fact (- n 1)) n) \
+                                                                ) \
+                                                        )", this.terp._builtins)
+        this.terp._builtins.assign('fact', evaluated_fact);
+        expect(this.terp.apply(evaluated_fact, [5])).toBe(120)
+        expect(this.terp.apply(evaluated_fact, [1])).toBe(1)
+        //These all use the evaluated definition of fact
+        expect(this.terp.leval("(let ((fact (lambda (n) (if (<= n 1) 1 (* (fact (- n 1)) n) )))) \
+                                                                                            (fact 4))")).toBe(24)
+        expect(this.terp.leval("(let ((fact (lambda (n) (if (<= n 1) 1 (* (fact (- n 1)) n) ))) (a 2)) \
+                                                                                            (fact 2))")).toBe(2)
+        expect(this.terp.leval("(let ((fact (lambda (n) (if (<= n 1) 1 (* (fact (- n 1)) n) ))) (a 2)) \
+                                                                                            (fact a))")).toBe(2)
+        expect(this.terp.leval("(let ((fact (lambda (n) (if (<= n 1) 1 (* (fact (- n 1)) n) ))) (a 5)) \
+                                                                                            (fact a))")).toBe(120)
+    });
+    it("Should be able to put itself into its own environment", function() {
 
-describe("lambda levaluation", function(){
+    });
+});
+xdescribe("lambda levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -96,7 +143,7 @@ describe("lambda levaluation", function(){
         expect(this.terp.leval('(((lambda (x) (lambda (y) (+ x y))) 3) 4)', global)).toBe(7);
     });
 });
-describe("assigment levaluation", function(){
+xdescribe("assigment levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -109,7 +156,7 @@ describe("assigment levaluation", function(){
     });
 });
 
-describe("environment operations", function(){
+xdescribe("environment operations", function(){
     it("Global environment assignment and lookup should work", function (){
         var global = new interpreter.GlobeEnv();
         global.assign("a", 4);
@@ -165,30 +212,34 @@ describe("environment operations", function(){
     });
 });
 
-describe("conditional and boolean levaluation", function(){
+xdescribe("conditional and boolean levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
-    it("Should recognise if expressions", function (){
+    xit("Should recognise if expressions", function (){
         expect(this.terp._is_if('(+ 3 5)')).toBe(false);
         expect(this.terp._is_if('(3)')).toBe(false);
         expect(this.terp._is_if('(if (x) (+ x 3) (- x 4))')).toBe(true);
         expect(this.terp._is_if('(if (x) (+ x 3))')).toBe(false);
         expect(this.terp._is_if('(if (x b) (- b (+ x 3)))')).toBe(false);
     });
-    it("Should correctly levaluate if expressions", function (){
+    xit("Should correctly levaluate if expressions", function (){
         expect(this.terp._leval_if('(if true 5 7)')).toBe(5);
         expect(this.terp._leval_if('(if false 5 7)')).toBe(7);
     });
-    it("Should recognise boolean literals", function (){
+    it("Should not evaluate the inactive parts of an if expression", function (){
+        expect(this.terp._leval_if('(if true 5 (/ 5 x))')).toBe(5);
+        expect(this.terp._leval_if('(if false 5 (/ 5 0))')).toBe(Infinity);
+    });
+    xit("Should recognise boolean literals", function (){
         expect(this.terp._is_literal("true")).toBe(true);
         expect(this.terp._is_literal("false")).toBe(true);
     });
-    it("Should handle boolean literals", function (){
+    xit("Should handle boolean literals", function (){
         expect(this.terp.leval("true")).toBe(true);
         expect(this.terp.leval("false")).toBe(false);
     });
-    it("Should handle boolean expressions", function (){
+    xit("Should handle boolean expressions", function (){
         expect(this.terp.leval("(or true false)")).toBe(true);
         expect(this.terp.leval("(and true false)")).toBe(false);
         expect(this.terp.leval("(not true)")).toBe(false);
@@ -201,7 +252,7 @@ describe("conditional and boolean levaluation", function(){
 });
 
 
-describe("simple arithmetic levaluation", function() {
+xdescribe("simple arithmetic levaluation", function() {
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -257,7 +308,7 @@ describe("simple arithmetic levaluation", function() {
     });
 });
 
-describe("simple list levaluation", function(){
+xdescribe("simple list levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });

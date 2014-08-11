@@ -69,6 +69,7 @@ ExpTree.prototype = {
 function Environment(predecessor){
     this._predecessor = predecessor;
     this._variables = {};
+    this.depth = predecessor.depth + 1
 }
 function GlobalEnvironment(assignments){
     this._predecessor = undefined;
@@ -76,6 +77,7 @@ function GlobalEnvironment(assignments){
     for (var key in assignments){
         this._variables[key] = assignments[key];
     }
+    this.depth = 0;
 }
 GlobalEnvironment.prototype = Environment.prototype = {
     assign: function(key, value, global){
@@ -97,14 +99,19 @@ GlobalEnvironment.prototype = Environment.prototype = {
             return undefined
         }
     },
+    _get_recursively_defined: function(){
+
+    },
     extend: function(){
-        return new Environment(this);
+        var new_env = new Environment(this);
+        return new_env;
     },
     lookup: function(key){
         var env
         if (env = this._find_env_with_variable(key)){
             return env._variables[key];
         } else {
+            debugger;
             throw Error("Global " + key + " not defined");
         }
     },
@@ -118,11 +125,13 @@ function Lambda(params, body, env){
 Lambda.prototype = {
     fill_environment: function(args){
         //Assign the arguments to the parameters.
+        var new_env = this.env.extend();
         var arg_i = 0;
         while (this.params[arg_i] !== undefined){
-            this.env.assign(this.params[arg_i], args[arg_i]);
+            new_env.assign(this.params[arg_i], args[arg_i]);
             arg_i ++;
         }
+        return new_env;
         //now we need to evaluate the body in the new environment.
     }
 }
@@ -138,7 +147,12 @@ function Terp () {
         'not': function (operand1) {return ! operand1},
         'and': function (operand1, operand2) {return operand1 && operand2},
         'or': function (operand1, operand2) {return operand1 || operand2},
-        'eq': function (operand1, operand2) {return operand1 === operand2},
+        '==': function (operand1, operand2) {return operand1 === operand2},
+        '>': function (operand1, operand2) {return operand1 > operand2},
+        '<': function (operand1, operand2) {return operand1 < operand2},
+        '>=': function (operand1, operand2) {return operand1 >= operand2},
+        '<=': function (operand1, operand2) {return operand1 <= operand2},
+        '!=': function (operand1, operand2) {return operand1 === operand2},
     });
 };
 Terp.prototype = {
@@ -149,21 +163,21 @@ Terp.prototype = {
         } else if (this._is_variable(expr)){
             return this._leval_variable(expr, env);
         } else if (this._is_compound(expr)){
-            if (this._is_lambda(expr)){
+            if (this._is_print(expr)){
+                return this._leval_print(expr, env);
+            } else if (this._is_lambda(expr)){
                 return this._leval_lambda(expr, env);
             } else if (this._is_let(expr)){
                 return this._leval_let(expr, env);
+            } else if (this._is_if(expr)){
+                return this._leval_if(expr, env);
             } else {
                 var that = this
-                return this.apply(
-                    //levaluate the function to be applied
-                    this.leval(this.first(expr)),
-                    // levaluate the arguments
-                    this.rest(expr).map(function (elem){
+                var args = this.rest(expr).map(function (elem){
                         return that.leval(elem, env)
                     })
-
-                );
+                var fun = this.leval(this.first(expr), env)
+                return this.apply(fun, args);
             }
         } else {
             throw new Error("Invalid Expression.");
@@ -173,8 +187,7 @@ Terp.prototype = {
         if (fun instanceof Function){
             return fun.apply(undefined, args);
         } else if (fun instanceof Lambda){
-            fun.fill_environment(args);
-            return this.leval(fun.body, fun.env);
+            return this.leval(fun.body, fun.fill_environment(args));
         } else {
             throw new Error("Unknown Function type "+fun);
         }
@@ -230,6 +243,23 @@ Terp.prototype = {
             return this.len(this.tokenize_list(expr));
         }
     },
+    _is_print: function(expr){
+        return this.first(expr) === 'print' ;
+    },
+    _leval_print: function(expr, env){
+        if (this.len(expr) == 2) {
+            value = this.leval(this.first(this.rest(expr)), env);
+            console.log(value)
+            return value;
+        } else if (this.len(expr) == 3){
+            var to_print = this.first(this.rest(expr));
+            var i;
+            for (i in to_print){
+                console.log(to_print[i] + " = " + this.leval(to_print[i], env))
+            }
+            return this.leval(this.first(this.rest(this.rest(expr))), env)
+        }
+    },
     _is_if: function (expr){
         return this.first(expr) === 'if' && this.len(expr) == 4; //Don't allow ifs without alternates.
     },
@@ -256,11 +286,10 @@ Terp.prototype = {
         return this._is_compound(expr) && this.first(expr) === 'let';
     },
     _let_new_env: function(assignments, env){
+        //In order for recursion to work, we need to do something weird.
         var new_env = env.extend();
         for (pair in assignments){
-            new_env.assign(assignments[pair][0],
-                    this.leval(assignments[pair][1], env)
-            );
+            new_env.assign(assignments[pair][0], this.leval(assignments[pair][1], new_env))
         }
         return new_env
     },
