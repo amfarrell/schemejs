@@ -1,7 +1,7 @@
 var tokenizer = require("sexp-tokenizer");
 var interpreter = require("../interpreter");
 
-xdescribe("parsing", function(){
+describe("parsing", function(){
     beforeEach(function() {
         this.parse =  function(expr){return (new interpreter.ExpTree(expr)).as_array()}
     });
@@ -26,7 +26,7 @@ xdescribe("parsing", function(){
         expect(this.parse("(add 2 (minus 5 (3)) (+ 4 5))")).toEqual(["add", "2", ["minus", "5", ["3"]], ["+", "4", "5"]]);
     });
 });
-xdescribe("printing", function(){
+describe("printing", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -74,11 +74,11 @@ describe("recursive definitions of lambdas", function(){
 
     });
 });
-xdescribe("lambda levaluation", function(){
+describe("lambda levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
-    it("Should recognise lambda expressions", function (){
+    xit("Should recognise lambda expressions", function (){
         expect(this.terp._is_lambda('4')).toBe(false);
         expect(this.terp._is_lambda('5.6e2')).toBe(false);
         expect(this.terp._is_lambda('%')).toBe(false);
@@ -88,15 +88,15 @@ xdescribe("lambda levaluation", function(){
         expect(this.terp._is_lambda('(lambda (x) (+ x 3))')).toBe(true);
         expect(this.terp._is_lambda('(lambda (x b) (- b (+ x 3)))')).toBe(true);
     });
-    it("Should extract lambda parameters", function (){
+    xit("Should extract lambda parameters", function (){
         expect(this.terp._lambda_params('(lambda (x) (+ x 3))')).toEqual(['x']);
         expect(this.terp._lambda_params('(lambda (x b) (- b (+ x 3)))')).toEqual(['x', 'b']);
     });
-    it("Should extract lambda body", function (){
+    xit("Should extract lambda body", function (){
         expect(this.terp._lambda_body('(lambda (x) (+ x 3))')).toEqual(['+', 'x', '3']);
         expect(this.terp._lambda_body('(lambda (x b) (- b (+ x 3)))')).toEqual(['-', 'b', ['+', 'x', '3']]);
     });
-    it("Should create lambda correctly", function(){
+    xit("Should create lambda correctly", function(){
         var global = this.terp._builtins;
         var fun = this.terp._leval_lambda('(lambda (x) (+ x 3))', global)
         expect(fun.body).toEqual(['+', 'x', '3']);
@@ -107,9 +107,9 @@ xdescribe("lambda levaluation", function(){
     it("Should fill in params correctly", function(){
         var global = this.terp._builtins;
         var fun = this.terp._leval_lambda('(lambda (x) (+ x 3))', global)
-        fun.fill_environment(["3"]);
-        expect(fun.env.lookup('sentenel')).toBe("sentenel")
-        expect(fun.env.lookup('x')).toBe("3")
+        var new_env = fun.fill_environment(["3"]);
+        expect(new_env.lookup('sentenel')).toBe("sentenel")
+        expect(new_env.lookup('x')).toBe("3")
 
     });
     it("Should be looked up correctly", function(){
@@ -121,9 +121,9 @@ xdescribe("lambda levaluation", function(){
     it("Should evaluate its body correctly", function(){
         var global = this.terp._builtins;
         var fun = this.terp._leval_lambda('(lambda (x) (+ x 3))', global)
-        fun.fill_environment([3]);
-        expect(this.terp.leval(['+', '3', '3'], fun.env)).toBe(6);
-        expect(this.terp.leval(fun.body, fun.env)).toBe(6);
+        var new_env = fun.fill_environment([3]);
+        expect(this.terp.leval(['+', '3', '3'], new_env)).toBe(6);
+        expect(this.terp.leval(fun.body, new_env)).toBe(6);
     });
     it("Should be called correctly", function(){
         var global = this.terp._builtins;
@@ -133,17 +133,10 @@ xdescribe("lambda levaluation", function(){
         expect(this.terp.leval('(addthree 3)')).toBe(6);
     });
     it("Should return a new function from a function correctly", function(){
-        var global = this.terp._builtins;
-        var fun = this.terp._leval_lambda('(lambda (x) (lambda (y) (+ x y)))', global)
-        this.terp._builtins.assign('makeadder', fun);
-        expect(this.terp.leval(['makeadder', '3']) instanceof interpreter.Lambda).toBe(true);
-        var fun2 = this.terp.leval(['makeadder', '3'])
-        expect(this.terp.leval(['+', 'x', '10'], fun.env)).toBe(13);
-
-        expect(this.terp.leval('(((lambda (x) (lambda (y) (+ x y))) 3) 4)', global)).toBe(7);
+        expect(this.terp.leval('(((lambda (x) (lambda (y) (+ x y))) 3) 4)')).toBe(7);
     });
 });
-xdescribe("assigment levaluation", function(){
+describe("assigment levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -156,7 +149,7 @@ xdescribe("assigment levaluation", function(){
     });
 });
 
-xdescribe("environment operations", function(){
+describe("environment operations", function(){
     it("Global environment assignment and lookup should work", function (){
         var global = new interpreter.GlobeEnv();
         global.assign("a", 4);
@@ -212,7 +205,7 @@ xdescribe("environment operations", function(){
     });
 });
 
-xdescribe("conditional and boolean levaluation", function(){
+describe("conditional and boolean levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -252,7 +245,7 @@ xdescribe("conditional and boolean levaluation", function(){
 });
 
 
-xdescribe("simple arithmetic levaluation", function() {
+describe("simple arithmetic levaluation", function() {
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -303,12 +296,12 @@ xdescribe("simple arithmetic levaluation", function() {
         expect(result).toBe(5);
     });
     it("Should error on any other expression", function (){
-        var that = this
+        var that = this;
         expect(function (){that.terp.leval("(def a 3)")}).toThrow();
     });
 });
 
-xdescribe("simple list levaluation", function(){
+describe("simple list levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
@@ -317,7 +310,7 @@ xdescribe("simple list levaluation", function(){
         expect(this.terp._is_compound(["add"])).toBe(true);
         expect(this.terp._is_compound([])).toBe(true);
     });
-    xit("Should recognise simple compound expressions", function(){
+    it("Should recognise simple compound expressions", function(){
         expect(this.terp._is_compound('4')).toBe(false);
         expect(this.terp._is_compound('5.6e2')).toBe(false);
         expect(this.terp._is_compound('%')).toBe(false);
@@ -325,7 +318,7 @@ xdescribe("simple list levaluation", function(){
         expect(this.terp._is_compound('(+ 3 5)')).toBe(true);
         expect(this.terp._is_compound('(3)')).toBe(true);
     });
-    xit("Should split expressions into lists properly", function (){
+    it("Should split expressions into lists properly", function (){
         expect(this.terp.rest("(undefined (5 6) 3 )")).toEqual([['5', '6'], '3']);
         expect(this.terp.first("(+ 2 3)")).toBe('+');
         expect(this.terp.first("(4 2 3)")).toBe('4');
@@ -336,4 +329,8 @@ xdescribe("simple list levaluation", function(){
         expect(this.terp.rest("(undefined 2 3)")).toEqual(['2', '3']);
         expect(this.terp.rest("(undefined 2 3 )")).toEqual(['2', '3']);
     });
+});
+
+describe("", function(){
+
 });
