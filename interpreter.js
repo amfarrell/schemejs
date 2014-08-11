@@ -1,7 +1,5 @@
-var tokenizer = require('sexp-tokenizer');
-
 function ExpTree(expr) {
-    this.expr = expr
+    this.expr = expr;
     this.root = [];
     this.stack = [this.root];
     this.depth = 0;
@@ -18,7 +16,7 @@ ExpTree.prototype = {
             throw Error("RecMatchError on " + this.expr);
             //TODO: come up with better error reporting here.
         }
-        this.stack.pop()
+        this.stack.pop();
         this.depth -= 1;
     },
     _add: function(elem) {
@@ -36,10 +34,10 @@ ExpTree.prototype = {
     },
     _parse: function(expr){
     // Inspiration drawn from https://github.com/jaz303/sexp-tokenizer
-        var SPACE_REGEX = /^[ \r\n\t]+/
-        var NUMBER_REGEX = /^-?\d+(?:\.\d+)?/
-        var QUOTED_REGEX = /^("(?:\\[rnt\\'"]|[^\\"])*"|'(?:\\[rnt\\'"]|[^\\'])*')/
-        var TOKEN_REGEX = /^[^\(\)'"\r\n\t ]+/
+        var SPACE_REGEX = /^[ \r\n\t]+/;
+        var NUMBER_REGEX = /^-?\d+(?:\.\d+)?/;
+        var QUOTED_REGEX = /^("(?:\\[rnt\\'"]|[^\\"])*"|'(?:\\[rnt\\'"]|[^\\'])*')/;
+        var TOKEN_REGEX = /^[^\(\)'"\r\n\t ]+/;
         var remaining = expr;
         var match;
         var len_subtract;
@@ -56,7 +54,7 @@ ExpTree.prototype = {
                        (match = QUOTED_REGEX.exec(remaining)) ||
                        (match = TOKEN_REGEX.exec(remaining))) {
                 this._add(match[0])
-                len_subtract = match[0].length
+                len_subtract = match[0].length;
             }
             remaining = remaining.slice(len_subtract);
         }
@@ -87,20 +85,17 @@ GlobalEnvironment.prototype = Environment.prototype = {
         } else {
             this._variables[key] = value;
         }
-        var that = this
-        return {assign: function(key, value, global){that.assign(key, value, global)}}
+        var that = this;
+        return {assign: function(key, value, global){that.assign(key, value, global)}};
     },
     _find_env_with_variable: function(key){
         if (this._variables.hasOwnProperty(key)){ //don't return undefined
             return this;
         } else if (this._predecessor){
-            return this._predecessor._find_env_with_variable(key)
+            return this._predecessor._find_env_with_variable(key);
         } else {
-            return undefined
+            return undefined;
         }
-    },
-    _get_recursively_defined: function(){
-
     },
     extend: function(){
         var new_env = new Environment(this);
@@ -111,7 +106,6 @@ GlobalEnvironment.prototype = Environment.prototype = {
         if (env = this._find_env_with_variable(key)){
             return env._variables[key];
         } else {
-            debugger;
             throw Error("Global " + key + " not defined");
         }
     },
@@ -172,11 +166,11 @@ Terp.prototype = {
             } else if (this._is_if(expr)){
                 return this._leval_if(expr, env);
             } else {
-                var that = this
+                var that = this;
                 var args = this.rest(expr).map(function (elem){
-                        return that.leval(elem, env)
+                        return that.leval(elem, env);
                     })
-                var fun = this.leval(this.first(expr), env)
+                var fun = this.leval(this.first(expr), env);
                 return this.apply(fun, args);
             }
         } else {
@@ -193,10 +187,10 @@ Terp.prototype = {
         }
     },
     _is_builtin: function(expr) {
-        return (expr in this._builtins)
+        return (expr in this._builtins);
     },
     _is_variable: function(expr){
-        return !this._is_literal(expr) && (typeof expr == "string" || expr instanceof String) && expr[0] !== '('
+        return !this._is_literal(expr) && (typeof expr == "string" || expr instanceof String) && expr[0] !== '(';
     },
     _leval_variable: function(expr, env){
         return env.lookup(expr);
@@ -206,9 +200,7 @@ Terp.prototype = {
         'false': false,
     },
     _is_literal: function (expr) {
-        //is expr a number?
-        //Only handle numbers as litersl for now.
-        return expr in this._literals || !Number.isNaN((new Number(expr)).valueOf())
+        return expr in this._literals || !Number.isNaN((new Number(expr)).valueOf());
     },
     _leval_literal: function (expr) {
         if (expr==="false"){
@@ -217,7 +209,7 @@ Terp.prototype = {
         return this._literals[expr] || (new Number(expr)).valueOf();
     },
     _is_compound: function(expr, env){
-        return (expr instanceof Array) || expr[0] === '('
+        return (expr instanceof Array) || expr[0] === '(';
     },
     tokenize_list: function(expr){
         return (new ExpTree(expr)).as_array();
@@ -249,13 +241,13 @@ Terp.prototype = {
     _leval_print: function(expr, env){
         if (this.len(expr) == 2) {
             value = this.leval(this.first(this.rest(expr)), env);
-            console.log(value)
+            console.log(value);
             return value;
         } else if (this.len(expr) == 3){
             var to_print = this.first(this.rest(expr));
             var i;
             for (i in to_print){
-                console.log(to_print[i] + " = " + this.leval(to_print[i], env))
+                console.log(to_print[i] + " = " + this.leval(to_print[i], env));
             }
             return this.leval(this.first(this.rest(this.rest(expr))), env)
         }
@@ -265,9 +257,9 @@ Terp.prototype = {
     },
     _leval_if: function (expr, env){
         if (this.leval(this.first(this.rest(expr)), env)){ //implicitly uses js's own model for truthyness
-            return this.leval(this.first(this.rest(this.rest(expr))), env) //caddr
+            return this.leval(this.first(this.rest(this.rest(expr))), env); //caddr
         } else {
-            return this.leval(this.first(this.rest(this.rest(this.rest(expr)))), env) //cadddr
+            return this.leval(this.first(this.rest(this.rest(this.rest(expr)))), env); //cadddr
         }
     },
     _is_lambda: function(expr, env){
@@ -280,7 +272,7 @@ Terp.prototype = {
         return this.first(this.rest(this.rest(expr)));
     },
     _leval_lambda: function(expr, env){
-        return new Lambda(this._lambda_params(expr), this._lambda_body(expr), env)
+        return new Lambda(this._lambda_params(expr), this._lambda_body(expr), env);
     },
     _is_let: function(expr, env) {
         return this._is_compound(expr) && this.first(expr) === 'let';
@@ -289,21 +281,15 @@ Terp.prototype = {
         //In order for recursion to work, we need to do something weird.
         var new_env = env.extend();
         for (pair in assignments){
-            new_env.assign(assignments[pair][0], this.leval(assignments[pair][1], new_env))
+            new_env.assign(assignments[pair][0], this.leval(assignments[pair][1], new_env));
         }
-        return new_env
+        return new_env;
     },
     _leval_let: function(expr, env) {
         // Evaluate the caddr in the new env created from the key-value pairs in the cadr.
         return this.leval(this.first(this.rest(this.rest(expr))),
                 this._let_new_env(this.first(this.rest(expr)), env)
-                )
-    },
-    _is_definition: function(expr, env) {
-        return this._is_compound(expr) && this.first(expr) === 'def';
-    },
-    _leval_definition: function(expr, env) {
-
+                );
     },
 }
 exports.Interpreter = Terp;
@@ -314,17 +300,16 @@ exports.Lambda = Lambda;
 
 if (!module.parent){
     (function shell(){
-        var readline = require('readline');
-        var rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout,
-        });
         var terp = new Terp();
-        rl.on("line", function(answer){
-            if (answer == '\d'){
-                return
+        process.stdout.write("scheme> ");
+        process.stdin.setEncoding('utf8');
+        process.stdin.once('data', function(input){
+            if (input === '\d') {
+                return;
+            } else {
+                process.stdout.write(terp.leval(input));
+                process.stdout.write("scheme> ");
             }
-            console.log(terp.leval(answer));
-        });
+        }).resume();
     })();
 }
