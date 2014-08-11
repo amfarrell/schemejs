@@ -19,6 +19,33 @@
 </head>
 <body>
   <div>
+      <div>
+          This scheme interpreter, written in javascript, is a work in
+          progress. Notably, it only has the special forms
+          <code>lambda</code>,<code>let</code>,<code>if</code> 
+          and the builtin functions 
+            <code>+</code>,
+            <code>-</code>,
+            <code>*</code>,
+            <code>/</code>,
+            <code>%</code>,
+            <code>not</code>,
+            <code>and</code>,
+            <code>or</code>,
+            <code>==</code>,
+            <code>!=</code>,
+            <code>&gt;</code>,
+            <code>&lt;</code>,
+            <code>&gt;=</code>, and
+            <code>&lt;=</code>.
+            </p> <p>
+            There is a non-standard special form <code>print</code>, which can take either one of two arguments.
+            </p> <p>
+            <code>(print (+ 3 4))</code> will evaluate its argument, print the result, and return the result unmodified.
+            </p> <p>
+            <code>(let ((x 3) (y 4)) (print (x y) (+ x y)))</code> will print the values of x and y in the current environment and then return the result of evaluating <code>(+ x y)</code>.
+            <p>
+      </div>
   <div>
   Input:
   </div>
