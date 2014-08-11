@@ -1,5 +1,4 @@
-var tokenizer = require("sexp-tokenizer");
-var interpreter = require("../interpreter");
+//var interpreter = require("../interpreter");
 
 describe("parsing", function(){
     beforeEach(function() {
@@ -70,15 +69,12 @@ describe("recursive definitions of lambdas", function(){
         expect(this.terp.leval("(let ((fact (lambda (n) (if (<= n 1) 1 (* (fact (- n 1)) n) ))) (a 5)) \
                                                                                             (fact a))")).toBe(120)
     });
-    it("Should be able to put itself into its own environment", function() {
-
-    });
 });
 describe("lambda levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
-    xit("Should recognise lambda expressions", function (){
+    it("Should recognise lambda expressions", function (){
         expect(this.terp._is_lambda('4')).toBe(false);
         expect(this.terp._is_lambda('5.6e2')).toBe(false);
         expect(this.terp._is_lambda('%')).toBe(false);
@@ -88,15 +84,15 @@ describe("lambda levaluation", function(){
         expect(this.terp._is_lambda('(lambda (x) (+ x 3))')).toBe(true);
         expect(this.terp._is_lambda('(lambda (x b) (- b (+ x 3)))')).toBe(true);
     });
-    xit("Should extract lambda parameters", function (){
+    it("Should extract lambda parameters", function (){
         expect(this.terp._lambda_params('(lambda (x) (+ x 3))')).toEqual(['x']);
         expect(this.terp._lambda_params('(lambda (x b) (- b (+ x 3)))')).toEqual(['x', 'b']);
     });
-    xit("Should extract lambda body", function (){
+    it("Should extract lambda body", function (){
         expect(this.terp._lambda_body('(lambda (x) (+ x 3))')).toEqual(['+', 'x', '3']);
         expect(this.terp._lambda_body('(lambda (x b) (- b (+ x 3)))')).toEqual(['-', 'b', ['+', 'x', '3']]);
     });
-    xit("Should create lambda correctly", function(){
+    it("Should create lambda correctly", function(){
         var global = this.terp._builtins;
         var fun = this.terp._leval_lambda('(lambda (x) (+ x 3))', global)
         expect(fun.body).toEqual(['+', 'x', '3']);
@@ -209,14 +205,14 @@ describe("conditional and boolean levaluation", function(){
     beforeEach(function(){
         this.terp = new interpreter.Interpreter();
     });
-    xit("Should recognise if expressions", function (){
+    it("Should recognise if expressions", function (){
         expect(this.terp._is_if('(+ 3 5)')).toBe(false);
         expect(this.terp._is_if('(3)')).toBe(false);
         expect(this.terp._is_if('(if (x) (+ x 3) (- x 4))')).toBe(true);
         expect(this.terp._is_if('(if (x) (+ x 3))')).toBe(false);
         expect(this.terp._is_if('(if (x b) (- b (+ x 3)))')).toBe(false);
     });
-    xit("Should correctly levaluate if expressions", function (){
+    it("Should correctly levaluate if expressions", function (){
         expect(this.terp._leval_if('(if true 5 7)')).toBe(5);
         expect(this.terp._leval_if('(if false 5 7)')).toBe(7);
     });
@@ -224,15 +220,15 @@ describe("conditional and boolean levaluation", function(){
         expect(this.terp._leval_if('(if true 5 (/ 5 x))')).toBe(5);
         expect(this.terp._leval_if('(if false 5 (/ 5 0))')).toBe(Infinity);
     });
-    xit("Should recognise boolean literals", function (){
+    it("Should recognise boolean literals", function (){
         expect(this.terp._is_literal("true")).toBe(true);
         expect(this.terp._is_literal("false")).toBe(true);
     });
-    xit("Should handle boolean literals", function (){
+    it("Should handle boolean literals", function (){
         expect(this.terp.leval("true")).toBe(true);
         expect(this.terp.leval("false")).toBe(false);
     });
-    xit("Should handle boolean expressions", function (){
+    it("Should handle boolean expressions", function (){
         expect(this.terp.leval("(or true false)")).toBe(true);
         expect(this.terp.leval("(and true false)")).toBe(false);
         expect(this.terp.leval("(not true)")).toBe(false);
@@ -329,8 +325,4 @@ describe("simple list levaluation", function(){
         expect(this.terp.rest("(undefined 2 3)")).toEqual(['2', '3']);
         expect(this.terp.rest("(undefined 2 3 )")).toEqual(['2', '3']);
     });
-});
-
-describe("", function(){
-
 });

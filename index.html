@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scheme interpreter</title>
+  <link rel="shortcut icon" type="image/png" href="jasmine/lib/jasmine-2.0.0/jasmine_favicon.png">
+  <link rel="stylesheet" type="text/css" href="jasmine/lib/jasmine-2.0.0/jasmine.css"> 
+
+  <script type="text/javascript" src="jasmine/lib/jasmine-2.0.0/jasmine.js"></script>
+  <script type="text/javascript" src="jasmine/lib/jasmine-2.0.0/jasmine-html.js"></script>
+  <script type="text/javascript" src="jasmine/lib/jasmine-2.0.0/boot.js"></script>
+
+  <link rel="stylesheet" href="css/bootstrap.css">
+  <link rel="stylesheet" href="css/app.css">
+  <script src="./interpreter.js"></script>
+  <script src="./spec/interpreter-spec.js"></script>
+  <script src="./jquery.js"></script>
+
+</head>
+<body>
+  <div>
+  <div>
+  Input:
+  </div>
+  <div>
+  <textarea id="expression" class="form-control">
+      (let ((fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))) )) (fib 6))
+  </textarea>
+  </div>
+  <div>
+      <button class="btn btn-default" id="compute">interpret</button>
+  </div>
+  <div>
+  <p>Output:</p> 
+  </div>
+  <div id="result">
+
+  </div>
+  </div>
+  <script>
+      $("#compute").click(function(){
+        console.log($("#expression").val().trim());
+        var result = (new interpreter.Interpreter()).leval($("#expression").val().trim());
+        console.log(result)
+        $("#result").html(" "+result);
+      });
+  </script>
+
+</body>
+</html>
