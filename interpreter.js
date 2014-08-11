@@ -156,6 +156,8 @@ Terp.prototype = {
             return this._leval_literal(expr);
         } else if (this._is_variable(expr)){
             return this._leval_variable(expr, env);
+        } else if (this._is_list(expr)){
+            return this._leval_list(expr, env);
         } else if (this._is_compound(expr)){
             if (this._is_print(expr)){
                 return this._leval_print(expr, env);
@@ -165,6 +167,12 @@ Terp.prototype = {
                 return this._leval_let(expr, env);
             } else if (this._is_if(expr)){
                 return this._leval_if(expr, env);
+            } else if (this._is_cons(expr)){
+                return this._leval_cons(expr, env);
+            } else if (this._is_car(expr)){
+                return this._leval_car(expr, env);
+            } else if (this._is_cdr(expr)){
+                return this._leval_cdr(expr, env);
             } else {
                 var that = this;
                 var args = this.rest(expr).map(function (elem){
@@ -200,7 +208,7 @@ Terp.prototype = {
         'false': false,
     },
     _is_literal: function (expr) {
-        return expr in this._literals || !Number.isNaN((new Number(expr)).valueOf());
+        return expr in this._literals || (expr instanceof Number || typeof(expr) == 'number') || !Number.isNaN((new Number(expr)).valueOf());
     },
     _leval_literal: function (expr) {
         if (expr==="false"){
@@ -209,31 +217,31 @@ Terp.prototype = {
         return this._literals[expr] || (new Number(expr)).valueOf();
     },
     _is_compound: function(expr, env){
-        return (expr instanceof Array) || expr[0] === '(';
+        return ((expr instanceof Array) || expr[0] === '(') && this.len(expr) > 0 && !this._is_literal(this.first(expr));
+    },
+    _is_list:function(expr, env){
+        //The only way to form a list of functions is a cons tree.
+        return ((expr instanceof Array) || expr[0] === '(') && this.len(expr) == 0 || this._is_literal(this.first(expr));
+    },
+    _leval_list:function(expr, env){
+        var that = this
+        return ((expr instanceof Array && expr) || this.tokenize_list(expr)).map(function(elem){return that.leval(elem, env)});
     },
     tokenize_list: function(expr){
-        return (new ExpTree(expr)).as_array();
+        if (expr instanceof Array){
+            return expr;
+        } else {
+            return (new ExpTree(expr)).as_array();
+        }
     },
     first: function(expr){
-        if (expr instanceof Array){
-            return expr[0];
-        } else {
-            return this.tokenize_list(expr)[0];
-        }
+        return this.tokenize_list(expr)[0];
     },
     rest: function(expr){
-        if (expr instanceof Array){
-            return expr.slice(1);
-        } else {
-            return this.tokenize_list(expr).slice(1);
-        }
+        return this.tokenize_list(expr).slice(1);
     },
     len: function(expr){
-        if (expr instanceof Array){
-            return expr.length;
-        } else {
-            return this.len(this.tokenize_list(expr));
-        }
+        return this.tokenize_list(expr).length;
     },
     _is_print: function(expr){
         return this.first(expr) === 'print' ;
@@ -290,6 +298,28 @@ Terp.prototype = {
         return this.leval(this.first(this.rest(this.rest(expr))),
                 this._let_new_env(this.first(this.rest(expr)), env)
                 );
+    },
+    _is_cons: function(expr, env) {
+        return this._is_compound(expr) && this.first(expr) === 'cons';
+    },
+    _leval_cons: function(expr, env){
+
+        console.log(this.leval(this.first(this.rest(expr)), env))
+        console.log(this.leval(this.first(this.rest(this.rest(expr))), env))
+        return [this.leval(this.first(this.rest(expr)), env), this.leval(this.first(this.rest(this.rest(expr))), env)];
+    },
+    _is_car: function(expr, env) {
+        return this._is_compound(expr) && this.first(expr) === 'car';
+    },
+    _leval_car: function(expr, env){
+        console.log("taking the car of " + this.rest(expr))
+        return [this.first(this.leval(this.rest(expr), env))]
+    },
+    _is_cdr: function(expr, env) {
+        return this._is_compound(expr) && this.first(expr) === 'cdr';
+    },
+    _leval_cdr: function(expr, env){
+        return [this.rest(this.leval(this.rest(expr), env))]
     },
 }
 exports.Interpreter = Terp;

@@ -308,15 +308,16 @@ describe("simple list levaluation", function(){
     it("Should recognise list expressions", function(){
         expect(this.terp._is_compound(["add", "3", "4"])).toBe(true);
         expect(this.terp._is_compound(["add"])).toBe(true);
-        expect(this.terp._is_compound([])).toBe(true);
+        expect(this.terp._is_compound([])).toBe(false);
     });
     it("Should recognise simple compound expressions", function(){
         expect(this.terp._is_compound('4')).toBe(false);
         expect(this.terp._is_compound('5.6e2')).toBe(false);
         expect(this.terp._is_compound('%')).toBe(false);
-        expect(this.terp._is_compound('/ 4')).toBe(false);
+        expect(function(){this.terp._is_compound('/ 4')}).toThrow();
         expect(this.terp._is_compound('(+ 3 5)')).toBe(true);
-        expect(this.terp._is_compound('(3)')).toBe(true);
+        expect(this.terp._is_compound('(3)')).toBe(false);
+        expect(this.terp._is_compound('()')).toBe(false);
     });
     it("Should split expressions into lists properly", function (){
         expect(this.terp.rest("(undefined (5 6) 3 )")).toEqual([['5', '6'], '3']);
@@ -331,6 +332,43 @@ describe("simple list levaluation", function(){
     });
 });
 
-describe("", function(){
+describe("list creation and access", function(){
+    beforeEach(function(){
+        this.terp = new interpreter.Interpreter();
+    });
+    it("Should recognise lists correctly", function (){
+        expect(function(){this.terp._is_compound('/ 4')}).toThrow();
+        expect(this.terp._is_list('(+ 3 5)')).toBe(false);
+        expect(this.terp._is_list('(3)')).toBe(true);
+        expect(this.terp._is_list('(3 5 6 add)')).toBe(true);
+        expect(this.terp.leval("(3 4)")).toEqual([3, 4])
+        expect(this.terp.leval([3, 4])).toEqual([3, 4])
+        expect(this.terp._is_literal(this.terp.first(([3, 4])))).toEqual(true)
+    });
+    it("Should recognise the empty list correctly", function (){
+        expect(this.terp._is_list('()')).toBe(true);
+        expect(this.terp._is_list([])).toBe(true);
 
+    })
+    it("Should cons up lists correctly", function (){
+        expect(this.terp.leval("(cons 3 4)")).toEqual([3, 4])
+    });
+    it("Should take the car of lists correctly", function (){
+        expect(this.terp.leval("(car (3 4))")).toEqual(3)
+        expect(this.terp.leval("(car ((3) 4))")).toEqual([3])
+        /*
+        expect(this.terp.leval("(car (3 4))")).toEqual(3)
+        expect(this.terp.leval("(car (cons 3 4))")).toEqual(3)
+        expect(this.terp.leval("(cdr (cons 3 4))")).toEqual(4)
+        expect(this.terp.leval("(cons (3 4 5) 6)")).toEqual(['3', '4', '5'])
+        expect(this.terp.leval("(cons (3 4 5) (6))")).toEqual(['3', '4', '5'])
+        expect(this.terp.leval("(cons (3 4 5) ((6)))")).toEqual(['3', '4', '5'])
+
+        expect(this.terp.leval("(cons (3 4 5) (1 9 2))")).toEqual(['3', '4', '5', '1', '9', '2'])
+        expect(this.terp.leval("(car (3 4 5))")).toEqual('3')
+        expect(this.terp.leval("(cdr (3 4 5))")).toEqual(['4', '5'])
+        expect(this.terp.leval("(cons () (3))")).toEqual(['4', '5'])
+        */
+
+    });
 });
