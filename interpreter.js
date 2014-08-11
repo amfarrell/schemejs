@@ -311,3 +311,20 @@ exports.ExpTree = ExpTree;
 exports.Env = Environment;
 exports.GlobeEnv = GlobalEnvironment;
 exports.Lambda = Lambda;
+
+if (!module.parent){
+    (function shell(){
+        var readline = require('readline');
+        var rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+        });
+        var terp = new Terp();
+        rl.on("line", function(answer){
+            if (answer == '\d'){
+                return
+            }
+            console.log(terp.leval(answer));
+        });
+    })();
+}
